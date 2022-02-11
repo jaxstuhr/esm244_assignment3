@@ -1,0 +1,81 @@
+---
+title: "Task 1 - PCA"
+author: "Jaxon Stuhr"
+date: "2/11/2022"
+output: html_document
+---
+
+```{r setup, include=TRUE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(here)
+library(broom)
+# for lab part 1 PCA
+library(ggfortify)
+library(palmerpenguins)
+library(patchwork)
+```
+
+## Introduction
+
+This analysis draws on data provided by @zander_venter on Kaggle. It was acquired through Google Earth's publicly available remote sensing capabilities. The data provides environmental, weather, and climate variables at a country level. I examined the variety of temperature data in the set and compared this to the mean rainfall numbers for the given countries. A principal components analysis was conducted on the 10 temperature variables provided in the data set. 
+
+## Principal Components Analysis (PCA)
+
+```{r}
+# read in data
+world_env_vars = read.csv(here("data", "world_env_vars.csv"))
+# remove NAs
+world_clean = world_env_vars %>% 
+  drop_na()
+```
+
+```{r}
+# run PCA
+world_pca = world_clean %>% 
+  select(starts_with("temp")) %>% 
+  scale() %>% 
+  prcomp()
+```
+
+```{r}
+# can graph many different types of models
+autoplot(world_pca,
+         data = world_clean, 
+         loadings = TRUE, 
+         colour = 'rain_mean_annual', 
+         loadings.label = TRUE,
+         loadings.label.colour = 'black',
+         loadings.colour = 'black',
+         xlim = c(-0.25,0.25))
+```
+
+Figure 1: Biplot of two Principal Components explaining the most variation, with countries' annual rain represented in shades of blue
+```{r}
+sd_vec = world_pca$sdev
+var_vec = sd_vec^2
+
+pc_names = colnames(world_pca$rotation)
+pct_expl_df = data.frame(v = var_vec,
+                         pct_v = var_vec / sum(var_vec),
+                         pc = fct_inorder(pc_names)) %>%
+  mutate(pct_lbl = paste0(round(pct_v * 100, 1), '%'))
+```
+
+```{r}
+ggplot(pct_expl_df, aes(x = pc, y = v, fill = pc)) + 
+  geom_col() + 
+  geom_text(aes(label = pct_lbl), vjust = 0, nudge_y = .02) + 
+  labs(x = 'Principal Component', y = 'Variance Explained')
+```
+
+Figure 2: Screeplot of principal components and their explained variance, first two PC's capture 90.4% of variance
+
+## Summary
+
+- one primary principal component captures 68.1% of the information in the 10 observed temperature-related variables
+- based on the biplot, correlations appear to exist between the minimum temperature during the coldest month and the coldest quarter, as well as high mean rainfall, which is to be expected
+- interestingly, whiletemperature during the warmest month and the warmest quarter were also strongly correlated, they did not appear to correlate strongly with low mean rainfall
+- seasonality and temp range were strongly correlated, which was to be expected
+
+
