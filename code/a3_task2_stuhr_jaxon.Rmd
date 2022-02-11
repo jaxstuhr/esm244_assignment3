@@ -1,0 +1,12 @@
+---
+title: "Task 2 - Clustering"
+author: "Jaxon Stuhr"
+date: "2/11/2022"
+output: html_document
+---
+```{r setup, include=TRUE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+
+```
+
