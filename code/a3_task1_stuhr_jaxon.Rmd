@@ -33,13 +33,16 @@ world_clean = world_env_vars %>%
 ```{r}
 # run PCA
 world_pca = world_clean %>% 
+  # only look at temp vars
   select(starts_with("temp")) %>% 
+  # scale variables to mean = 0
   scale() %>% 
+  # run PCA
   prcomp()
 ```
 
 ```{r}
-# can graph many different types of models
+# plot pca and world_clean data w color based on rainfall and variables labeled
 autoplot(world_pca,
          data = world_clean, 
          loadings = TRUE, 
@@ -52,10 +55,12 @@ autoplot(world_pca,
 
 Figure 1: Biplot of two Principal Components explaining the most variation, with countries' annual rain represented in shades of blue
 ```{r}
+# build variance = sd^2 vector
 sd_vec = world_pca$sdev
 var_vec = sd_vec^2
-
+# build list of names for plot
 pc_names = colnames(world_pca$rotation)
+# build dataframe to plot w PCA names, variance, percent of variance explained
 pct_expl_df = data.frame(v = var_vec,
                          pct_v = var_vec / sum(var_vec),
                          pc = fct_inorder(pc_names)) %>%
@@ -63,6 +68,7 @@ pct_expl_df = data.frame(v = var_vec,
 ```
 
 ```{r}
+# build screeplot of PCA
 ggplot(pct_expl_df, aes(x = pc, y = v, fill = pc)) + 
   geom_col() + 
   geom_text(aes(label = pct_lbl), vjust = 0, nudge_y = .02) + 

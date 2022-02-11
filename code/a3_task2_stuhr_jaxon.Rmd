@@ -6,7 +6,78 @@ output: html_document
 ---
 ```{r setup, include=TRUE, message = FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
-
-
+library(tidyverse)
+library(janitor)
+library(palmerpenguins)
+library(here)
+library(naniar)
+ 
+# Packages for cluster analysis:
+library(NbClust)
+library(cluster)
+library(factoextra)
+library(dendextend)
+library(ggdendro)
 ```
 
+## Introduction
+
+This analysis considers data gatherd by the Santa Barbara Coastal LTER. A variety of sites are sampled for dissolved nitrogen (nitrate, ammonium, total dissolved nitrogen); soluble reactive phosphorus (SRP); particulate organic carbon, nitrogen and phosphorus; total suspended sediments; and conductivity. The above variables are used in a hierarchical algorithm to group sites into clusters. The observations were collected between 2000 and 2019. 
+
+## Hierarchical Clustering
+
+```{r}
+# read in data
+sbc_lter_raw = read_csv(here("data", "sbc_lter_registered_stream_chemistry.csv"))
+# set -999 to NA
+sbc_clean = sbc_lter_raw %>% 
+  replace_with_na_all(condition = ~.x == -999) %>% 
+  select(-c("timestamp_local"))
+```
+
+```{r}
+# group by site_code, summarize mean of each variable
+sbc_summary = sbc_clean %>% 
+  group_by(site_code) %>% 
+  # drop NAs when taking mean
+  summarise_all(~ mean(.x, na.rm = TRUE))
+```
+
+
+```{r}
+# select only numerical data
+sbc_scale = sbc_summary %>% 
+  select(2:11) %>%
+  # scale it to have mean = 0, sd = 1
+  scale()
+# set row names to site codes
+rownames(sbc_scale) = sbc_summary$site_code
+# display
+summary(sbc_scale)
+```
+
+```{r}
+# create distance matrix
+sbc_dist = dist(sbc_scale, method = 'euclidean', )
+
+# heirarchical clustering based on complete linkage
+sbc_hc_complete = hclust(sbc_dist, method = 'complete')
+
+# plot using base plot
+#plot(sbc_hc_complete, cex = 0.6, hang = -1)
+ggdendrogram(sbc_hc_complete, 
+             rotate = FALSE, labels = TRUE, leaf_labels = TRUE, fill = "blue") +
+  theme_minimal() +
+  labs(x = "Site Code",  y= "Dendrogram Tree Height")
+```
+
+Figure 1: A dendrogram of Santa Barbara Coastal LTER sites based on all observed chemical and solid quantities. 
+
+
+## Summary
+
+The heirarchical clustering dendrogram leads to two clear groupings of either 3 or 4 clusters. In both groupings, cluster 1 contains only site DVO1 (Devereaux Creek), and cluster 2 contains sites AT07, GV01, RS02, AB00, MC00, MC06, SP02, H00, and RG01 (see source metadata for site code definitions). One grouping then only has a third cluster, conaining BC02, ON02, and TO02, and the fourth splits BC02 into it's own cluster. The devereux site having it's own cluster is likely in part due to it's dramatically increased NH4 concentraions, greater than 3x more than the next site. 
+
+## Data Citation
+
+Santa Barbara Coastal LTER and J. Melack. 2019. SBC LTER: Land: Stream chemistry in the Santa Barbara Coastal drainage area, ongoing since 2000 ver 16. Environmental Data Initiative. https://doi.org/10.6073/pasta/67a558a24ceed9a0a5bf5e46ab841174. 
